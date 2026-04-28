@@ -1,0 +1,5 @@
+{
+  "name": "K-Apartment 3D Visualizer",
+  "description": "Transform 2D floor plans of Korean apartments into photorealistic 3D isometric renderings using Gemini AI.",
+  "requestFramePermissions": []
+}
