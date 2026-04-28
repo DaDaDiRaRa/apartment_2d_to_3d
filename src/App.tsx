@@ -1,17 +1,25 @@
 import { useState, useEffect, useRef, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Upload, 
-  Image as ImageIcon, 
-  Box, 
-  Download, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  Upload,
+  Image as ImageIcon,
+  Box,
+  Download,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
   ArrowRight,
-  Key
+  Key,
+  Compass
 } from 'lucide-react';
-import { analyzeFloorPlan, generate3DRendering } from './lib/gemini';
+import { analyzeFloorPlan, generate3DRendering, ViewDirection } from './lib/gemini';
+
+const DIRECTIONS: { value: ViewDirection; label: string; description: string }[] = [
+  { value: 'NW', label: 'NW', description: 'North-West view' },
+  { value: 'NE', label: 'NE', description: 'North-East view' },
+  { value: 'SW', label: 'SW', description: 'South-West view' },
+  { value: 'SE', label: 'SE', description: 'South-East view' },
+];
 
 // Extend Window interface for AI Studio
 declare global {
@@ -30,6 +38,7 @@ export default function App() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  const [direction, setDirection] = useState<ViewDirection>('SE');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,8 +99,8 @@ export default function App() {
       const mimeType = file.type;
 
       // Step 1: Analyze
-      const renderPrompt = await analyzeFloorPlan(base64Data, mimeType);
-      
+      const renderPrompt = await analyzeFloorPlan(base64Data, mimeType, direction);
+
       // Step 2: Render
       setStatus('rendering');
       const renderedImage = await generate3DRendering(renderPrompt, base64Data, mimeType);
@@ -249,16 +258,38 @@ export default function App() {
               )}
             </div>
 
-            {/* Info Section */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-white border border-black/5">
-                <div className="text-black/40 text-xs uppercase tracking-wider mb-1">Perspective</div>
-                <div className="font-medium">45° Isometric</div>
+            {/* Direction Selector */}
+            <div className="p-5 rounded-2xl bg-white border border-black/5">
+              <div className="flex items-center gap-2 text-black/40 text-xs uppercase tracking-wider mb-4">
+                <Compass size={14} />
+                <span>Isometric View Direction</span>
               </div>
-              <div className="p-4 rounded-2xl bg-white border border-black/5">
-                <div className="text-black/40 text-xs uppercase tracking-wider mb-1">Style</div>
-                <div className="font-medium">Modern Korean</div>
+              <div className="grid grid-cols-4 gap-2">
+                {DIRECTIONS.map(({ value, label, description }) => {
+                  const selected = direction === value;
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setDirection(value)}
+                      title={description}
+                      className={`flex flex-col items-center gap-1 py-3 rounded-xl border transition-all
+                        ${selected
+                          ? 'bg-black border-black text-white'
+                          : 'bg-white border-black/10 text-black/60 hover:border-orange-600/50 hover:text-black'}
+                      `}
+                    >
+                      <span className="font-bold text-sm">{label}</span>
+                      <span className={`text-[10px] uppercase tracking-wider ${selected ? 'text-white/60' : 'text-black/30'}`}>
+                        {value === 'NW' ? '↖' : value === 'NE' ? '↗' : value === 'SW' ? '↙' : '↘'}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+              <p className="mt-3 text-xs text-black/40">
+                Camera looks down at the apartment from the selected corner direction.
+              </p>
             </div>
           </section>
 
